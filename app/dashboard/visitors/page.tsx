@@ -1,13 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {z} from "zod";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {cn} from "@/lib/utils";
+import {format} from "date-fns";
+import {CalendarIcon} from "lucide-react";
+import {Calendar} from "@/components/ui/calendar";
+
 
 type Visitor = {
   id: number
@@ -20,8 +28,8 @@ type Visitor = {
 const visitorSchema = z.object({
   name: z.number().min(1000, 'Minimum payment is ₦1,000'),
   purpose: z.string().min(10, 'Pu'),
-  arrivalTime: z.string().min(2, 'House number is required'),
-  departureTime: z.string().min(3, 'Description is required'),
+  arrivalTime: z.date(),
+  departureTime: z.date(),
 });
 
 type visitorFormData = z.infer<typeof visitorSchema>;
@@ -31,6 +39,10 @@ export default function Visitors() {
     { id: 1, name: "John Doe", purpose: "Meeting", arrivalTime: "2023-06-15 10:00", departureTime: null },
     { id: 2, name: "Jane Smith", purpose: "Delivery", arrivalTime: "2023-06-15 14:00", departureTime: null },
   ])
+
+  const form = useForm<visitorFormData>({
+    resolver: zodResolver(visitorSchema),
+  });
 
   const [newVisitor, setNewVisitor] = useState<Omit<Visitor, 'id' | 'departureTime'>>({
     name: "",
@@ -65,43 +77,123 @@ export default function Visitors() {
               <DialogHeader>
                 <DialogTitle>Add New Visitor</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    className="col-span-3"
-                    value={newVisitor.name}
-                    onChange={(e) => setNewVisitor({ ...newVisitor, name: e.target.value })}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleAddVisitor)} className="space-y-6">
+                  <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                      )}
                   />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="purpose" className="text-right">
-                    Purpose
-                  </Label>
-                  <Input
-                    id="purpose"
-                    className="col-span-3"
-                    value={newVisitor.purpose}
-                    onChange={(e) => setNewVisitor({ ...newVisitor, purpose: e.target.value })}
+                  <FormField
+                      control={form.control}
+                      name="purpose"
+                      render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Purpose</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                      )}
                   />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="arrivalTime" className="text-right">
-                    Arrival Time
-                  </Label>
-                  <Input
-                    id="arrivalTime"
-                    type="datetime-local"
-                    className="col-span-3"
-                    value={newVisitor.arrivalTime}
-                    onChange={(e) => setNewVisitor({ ...newVisitor, arrivalTime: e.target.value })}
+                  <FormField
+                      control={form.control}
+                      name="arrivalTime"
+                      render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Arrival Time</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                          "w-full pl-3 text-left font-normal",
+                                          !field.value && "text-muted-foreground"
+                                      )}
+                                  >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                        date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                      )}
                   />
-                </div>
-              </div>
-              <Button onClick={handleAddVisitor}>Add Visitor</Button>
+
+                  <FormField
+                      control={form.control}
+                      name="departureTime"
+                      render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Departure Time</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                          "w-full pl-3 text-left font-normal",
+                                          !field.value && "text-muted-foreground"
+                                      )}
+                                  >
+                                    {field.value ? (
+                                        format(field.value, "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                        date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+
+                  <Button className={'w-full'}>
+                    Add Visitor
+                  </Button>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
           <Table>
